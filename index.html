@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Schedule</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --primary-color: #3A86C8; /* ธีมสีฟ้ามินิมอล ไม่เข้มไม่จางเกินไป */
+            --primary-light: #F0F5FA; /* สีฟ้าอ่อนนุ่มๆ สำหรับกล่องดีเทลหลังกางออก */
+            --bg-color: #F9F9F9; 
+            --card-bg: #FFFFFF; 
+            --text-main: #111111; 
+            --text-sub: #666666; 
+            --border-color: #EEEEEE; 
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--bg-color); display: flex; justify-content: center; }
+        .app-container { width: 100%; max-width: 480px; min-height: 100vh; background-color: var(--card-bg); position: relative; padding-bottom: 80px; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        
+        /* Header Zone */
+        .header { padding: 24px 20px 10px 20px; position: sticky; top: 0; background-color: var(--card-bg); z-index: 10; }
+        .dept-title { font-size: 13px; font-weight: 600; color: var(--primary-color); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .title { font-size: 26px; font-weight: 700; margin-bottom: 15px; line-height: 1.2; }
+        
+        .search-container { position: relative; margin-bottom: 15px; }
+        .search-container i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #A0A0A0; }
+        .search-input { width: 100%; padding: 12px 12px 12px 40px; border: none; background-color: #F0F0F0; border-radius: 10px; font-size: 16px; outline: none; }
+        
+        /* List & Card Style */
+        .schedule-list { padding: 0 20px; }
+        .card { padding: 16px 0; border-bottom: 1px solid var(--border-color); cursor: pointer; }
+        .card-header-flex { display: flex; justify-content: space-between; align-items: center; }
+        .card-content { flex: 1; }
+        .subject-tag { font-size: 13px; color: var(--primary-color); font-weight: 600; margin-bottom: 4px; }
+        .topic-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+        .info-row { font-size: 14px; color: var(--text-sub); margin-bottom: 3px; display: flex; align-items: center; gap: 8px; }
+        .chevron { color: #CCCCCC; font-size: 14px; transition: transform 0.3s; }
+        
+        /* Detail Expandable (ปรับเป็นโทนฟ้าอ่อนมินิมอล) */
+        .card-detail { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; background-color: var(--primary-light); border-radius: 8px; margin-top: 0; padding: 0 12px; }
+        .card.active .chevron { transform: rotate(90deg); color: var(--primary-color); }
+        .card.active .card-detail { max-height: 200px; padding: 12px; margin-top: 10px; }
+        .detail-item { font-size: 14px; margin-bottom: 6px; color: #444444; display: flex; align-items: center; gap: 8px; }
+        .detail-item strong { color: var(--text-main); font-weight: 600; }
+        
+        /* Custom Calendar Style */
+        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 0 5px; position: relative; }
+        .current-month-year { font-size: 18px; font-weight: 700; }
+        .cal-btn-group { display: flex; gap: 8px; align-items: center; }
+        .cal-btn { padding: 6px 14px; border: 1px solid var(--border-color); background: #fff; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .cal-arrow { width: 32px; height: 32px; display: flex; justify-content: center; align-items: center; border: 1px solid var(--border-color); background: #fff; border-radius: 8px; cursor: pointer; }
+        
+        /* Dropdown */
+        .month-dropdown { position: absolute; right: 85px; top: 40px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: none; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px; z-index: 20; width: 240px; }
+        .month-select-item { padding: 8px; text-align: center; font-size: 13px; border-radius: 6px; cursor: pointer; background: #F5F5F5; font-weight: 500; }
+        .month-select-item:hover { background: var(--primary-color); color: white; }
+
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); border-top: 1px solid var(--border-color); border-left: 1px solid var(--border-color); }
+        .weekday-header { text-align: center; font-size: 12px; font-weight: 500; color: var(--text-sub); padding: 10px 0; background-color: #FAFAFA; border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); }
+        .calendar-day { min-height: 65px; padding: 4px; background-color: #fff; border-bottom: 1px solid var(--border-color); border-right: 1px solid var(--border-color); position: relative; cursor: pointer; display: flex; flex-direction: column; }
+        .calendar-day:hover { background-color: #F5F5F5; }
+        .day-number { font-size: 12px; font-weight: 600; color: #888; margin-bottom: 4px; }
+        .calendar-day.current-month .day-number { color: var(--text-main); }
+        .calendar-day.today { background-color: var(--primary-light); }
+        .calendar-day.selected { outline: 2px solid var(--primary-color); z-index: 2; }
+        
+        .event-badges-container { display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+        .event-badge { font-size: 9px; background-color: var(--primary-color); color: white; padding: 1px 3px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+        .more-events { font-size: 9px; color: var(--primary-color); font-weight: 700; margin-left: 2px; }
+        
+        .selected-day-title { padding: 15px 20px 5px 20px; font-size: 15px; font-weight: 700; color: var(--text-sub); border-top: 6px solid var(--bg-color); }
+
+        /* Navigation */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; max-width: 480px; height: 65px; background-color: var(--card-bg); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; align-items: center; z-index: 10; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #888888; cursor: pointer; font-size: 11px; }
+        .nav-item i { font-size: 20px; margin-bottom: 4px; }
+        .nav-item.active { color: var(--primary-color); }
+        .no-data { text-align: center; padding: 30px; color: var(--text-sub); font-size: 14px; }
+        .loading { text-align: center; padding: 40px; color: var(--primary-color); font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- App Header -->
+        <div class="header">
+            <div class="dept-title">Department of Physiology</div>
+            <div class="title" id="page-title">Upcoming Schedule</div>
+            
+            <div class="search-container" id="search-box-area">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" class="search-input" id="search-input" placeholder="Search course, topic, lecturer...">
+            </div>
+        </div>
+
+        <!-- Dynamic Content -->
+        <div id="main-content-area">
+            <div class="schedule-list" id="schedule-container">
+                <div class="loading">Loading schedule data...</div>
+            </div>
+        </div>
+
+        <!-- Bottom Tabs -->
+        <div class="nav-bar">
+            <div class="nav-item active" onclick="switchTab('upcoming')"><i class="fa-solid fa-table-cells-large"></i>Upcoming</div>
+            <div class="nav-item" onclick="switchTab('calendar')"><i class="fa-solid fa-calendar-days"></i>Calendar</div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ แปะลิงก์ CSV ของคุณที่ได้จาก Google Sheets ตรงนี้ครับ
+        const csvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS06tqJIf-NvLb-l-oSM7j_GTeI_ugojzO10xlW66IAcgEs-bh-dNWgOthZtD4jdqANS_TACeRc4u50/pub?gid=0&single=true&output=csv"; 
+
+        let allMasterData = [];
+        let filteredUpcomingData = [];
+        let currentTab = 'upcoming';
+        
+        let calDate = new Date(); 
+        let selectedDateStr = ""; 
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        function formatDateString(dateObj) {
+            const tzDate = new Date(dateObj.toLocaleString("en-US", {timeZone: "Asia/Bangkok"}));
+            let month = '' + (tzDate.getMonth() + 1),
+                day = '' + tzDate.getDate(),
+                year = tzDate.getFullYear();
+            if (month.length < 2) month = '0' + month;
+            if (day.length < 2) day = '0' + day;
+            return [year, month, day].join('-');
+        }
+
+        function parseCSV(text) {
+            const lines = text.split('\n');
+            const result = [];
+            for(let i = 1; i < lines.length; i++) {
+                if(!lines[i]) continue;
+                const currentline = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                if(currentline.length < 6) continue;
+                
+                let rawDate = currentline[4]?.replace(/"/g, '').trim();
+                let formattedDate = "";
+
+                if(rawDate.includes('/')) {
+                    let parts = rawDate.split('/');
+                    if(parts.length === 3) {
+                        formattedDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+                    }
+                } else {
+                    formattedDate = rawDate;
+                }
+
+                result.push({
+                    code: currentline[0]?.replace(/"/g, '').trim(),
+                    name: currentline[1]?.replace(/"/g, '').trim(),
+                    topic: currentline[2]?.replace(/"/g, '').trim(),
+                    lecturer: currentline[3]?.replace(/"/g, '').trim(),
+                    date: formattedDate,
+                    day: currentline[5]?.replace(/"/g, '').trim(),
+                    start: currentline[6]?.replace(/"/g, '').trim(),
+                    end: currentline[7]?.replace(/"/g, '').trim(),
+                    room: currentline[8]?.replace(/"/g, '').trim()
+                });
+            }
+            return result;
+        }
+
+        async function loadData() {
+            try {
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                allMasterData = parseCSV(csvText);
+                selectedDateStr = formatDateString(new Date());
+                if(currentTab === 'upcoming') filterUpcoming(); else renderCalendarView();
+            } catch (error) {
+                document.getElementById('main-content-area').innerHTML = `<div class="no-data">❌ Error loading data.</div>`;
+            }
+        }
+
+        function compareTimeStrings(a, b) {
+            const parseTime = (str) => {
+                const parts = str.split(':');
+                return parseInt(parts[0], 10) * 60 + parseInt(parts[1] || 0, 10);
+            };
+            return parseTime(a) - parseTime(b);
+        }
+
+        function filterUpcoming() {
+            if (allMasterData.length === 0) {
+                document.getElementById('main-content-area').innerHTML = `<div class="no-data">🎉 No classes scheduled</div>`;
+                return;
+            }
+
+            const todayStr = formatDateString(new Date());
+            let futureEvents = allMasterData.filter(item => item.date && item.date >= todayStr);
+            
+            if (futureEvents.length === 0) {
+                futureEvents = allMasterData;
+            }
+
+            futureEvents.sort((a, b) => a.date.localeCompare(b.date));
+            const closestStartDateStr = futureEvents[0]?.date || todayStr;
+
+            const startDate = new Date(closestStartDateStr + 'T00:00:00');
+            const endDate = new Date(closestStartDateStr + 'T00:00:00');
+            endDate.setDate(startDate.getDate() + 6); 
+
+            const startLimit = formatDateString(startDate);
+            const endLimit = formatDateString(endDate);
+
+            filteredUpcomingData = allMasterData.filter(item => {
+                return item.date && item.date >= startLimit && item.date <= endLimit;
+            });
+
+            filteredUpcomingData.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return compareTimeStrings(a.start, b.start);
+            });
+            
+            document.getElementById('main-content-area').innerHTML = `<div class="schedule-list" id="schedule-container"></div>`;
+            renderScheduleList(filteredUpcomingData, 'schedule-container');
+        }
+
+        // 🛠️ อัปเดตเปลี่ยนจาก Emoji เป็นไอคอนมินิมอลรูปแบบเดียวกันทั้งหมด
+        function renderScheduleList(dataToRender, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            if (dataToRender.length === 0) {
+                container.innerHTML = `<div class="no-data">🎉 No classes scheduled</div>`;
+                return;
+            }
+            dataToRender.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = function() { this.classList.toggle('active'); };
+                
+                let displayDate = item.date;
+                if(item.date.includes('-')) {
+                    let pts = item.date.split('-');
+                    displayDate = `${pts[2]}/${pts[1]}/${pts[0]}`;
+                }
+
+                card.innerHTML = `
+                    <div class="card-header-flex">
+                        <div class="card-content">
+                            <div class="subject-tag">${item.code}</div>
+                            <div class="topic-title">${item.topic}</div>
+                            <div class="info-row" style="color: var(--text-main); font-weight: 500; margin-bottom: 5px;"><i class="fa-regular fa-user" style="color: var(--primary-color); width: 16px;"></i> ${item.lecturer}</div>
+                            <div class="info-row"><i class="fa-regular fa-calendar" style="width: 16px;"></i> ${displayDate} (${item.day})</div>
+                            <div class="info-row"><i class="fa-regular fa-clock" style="width: 16px;"></i> ${item.start} - ${item.end} น.</div>
+                        </div>
+                        <div class="chevron"><i class="fa-solid fa-chevron-right"></i></div>
+                    </div>
+                    <!-- 🛠️ เปลี่ยนอิโมจิ 📚 และ 📍 ออก แล้วเปลี่ยนเป็นไอคอนเส้นสไตล์มินิมอลเพื่อให้เข้าธีม -->
+                    <div class="card-detail">
+                        <div class="detail-item"><i class="fa-solid fa-book-open" style="color: var(--primary-color); width: 16px;"></i> <strong>Course Name:</strong> ${item.name}</div>
+                        <div class="detail-item"><i class="fa-solid fa-location-dot" style="color: var(--primary-color); width: 16px;"></i> <strong>Room/Location:</strong> ${item.room}</div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderCalendarView() {
+            const area = document.getElementById('main-content-area');
+            area.innerHTML = `
+                <div style="padding: 0 20px; position:relative;">
+                    <div class="calendar-controls">
+                        <div class="current-month-year" id="month-year-label"></div>
+                        <div class="cal-btn-group">
+                            <button class="cal-btn" onclick="jumpToToday()">Today</button>
+                            <button class="cal-btn" onclick="toggleMonthDropdown()">Month <i class="fa-solid fa-chevron-down" style="font-size:10px;"></i></button>
+                            <div class="cal-arrow" onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></div>
+                            <div class="cal-arrow" onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></div>
+                        </div>
+                        <div class="month-dropdown" id="month-select-dropdown"></div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid-box"></div>
+                </div>
+                <div class="selected-day-title" id="selected-date-header">Classes</div>
+                <div class="schedule-list" id="cal-day-schedule-list"></div>
+            `;
+            buildCalendarStructure();
+            buildMonthDropdownOptions();
+            showClassesForSelectedDay();
+        }
+
+        function buildMonthDropdownOptions() {
+            const drop = document.getElementById('month-select-dropdown');
+            if(!drop) return;
+            drop.innerHTML = '';
+            months.forEach((m, idx) => {
+                const item = document.createElement('div');
+                item.className = 'month-select-item';
+                item.innerText = m.substring(0, 3);
+                item.onclick = function() {
+                    calDate.setMonth(idx);
+                    drop.style.display = 'none';
+                    let firstDay = new Date(calDate.getFullYear(), idx, 1);
+                    selectedDateStr = formatDateString(firstDay);
+                    buildCalendarStructure();
+                    showClassesForSelectedDay();
+                };
+                drop.appendChild(item);
+            });
+        }
+
+        function toggleMonthDropdown() {
+            const drop = document.getElementById('month-select-dropdown');
+            if(drop) drop.style.display = drop.style.display === 'grid' ? 'none' : 'grid';
+        }
+
+        function buildCalendarStructure() {
+            const label = document.getElementById('month-year-label');
+            const grid = document.getElementById('calendar-grid-box');
+            if(!grid) return;
+            grid.innerHTML = '';
+
+            label.innerText = `${months[calDate.getMonth()]} ${calDate.getFullYear()}`;
+
+            const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            weekdays.forEach(day => {
+                grid.innerHTML += `<div class="weekday-header">${day}</div>`;
+            });
+
+            const year = calDate.getFullYear();
+            const month = calDate.getMonth();
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const prevTotalDays = new Date(year, month, 0).getDate();
+
+            for (let i = firstDayIndex; i > 0; i--) {
+                const dayNum = prevTotalDays - i + 1;
+                const dObj = new Date(year, month - 1, dayNum);
+                grid.appendChild(createDayCell(dayNum, false, dObj));
+            }
+
+            const todayStr = formatDateString(new Date());
+            for (let i = 1; i <= totalDays; i++) {
+                const dObj = new Date(year, month, i);
+                const cell = createDayCell(i, true, dObj);
+                const cellDateStr = formatDateString(dObj);
+                if(cellDateStr === todayStr) cell.classList.add('today');
+                if(cellDateStr === selectedDateStr) cell.classList.add('selected');
+                grid.appendChild(cell);
+            }
+
+            const remainingCells = 42 - (grid.children.length - 7); 
+            for (let i = 1; i <= remainingCells; i++) {
+                const dObj = new Date(year, month + 1, i);
+                grid.appendChild(createDayCell(i, false, dObj));
+            }
+        }
+
+        function createDayCell(dayNum, isCurrentMonth, dateObj) {
+            const cell = document.createElement('div');
+            cell.className = `calendar-day ${isCurrentMonth ? 'current-month' : ''}`;
+            
+            const dateStr = formatDateString(dateObj);
+            cell.dataset.date = dateStr;
+            cell.innerHTML = `<div class="day-number">${dayNum}</div>`;
+            
+            const dayEvents = allMasterData.filter(item => item.date === dateStr);
+            if(dayEvents.length > 0) {
+                dayEvents.sort((a, b) => compareTimeStrings(a.start, b.start));
+                
+                const badgeContainer = document.createElement('div');
+                badgeContainer.className = 'event-badges-container';
+                
+                const firstEvent = dayEvents[0];
+                const cleanCode = firstEvent.code.split(' ')[0] || 'Class';
+                badgeContainer.innerHTML += `<div class="event-badge">${cleanCode}</div>`;
+                
+                if(dayEvents.length > 1) {
+                    badgeContainer.innerHTML += `<div class="more-events">+${dayEvents.length - 1} more</div>`;
+                }
+                cell.appendChild(badgeContainer);
+            }
+
+            cell.onclick = function() {
+                document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedDateStr = this.dataset.date;
+                showClassesForSelectedDay();
+            };
+
+            return cell;
+        }
+
+        function showClassesForSelectedDay() {
+            const header = document.getElementById('selected-date-header');
+            if(!header) return;
+
+            const displayDate = new Date(selectedDateStr + 'T00:00:00');
+            const options = { month: 'long', day: 'numeric', year: 'numeric' };
+            header.innerText = `Schedule for ${displayDate.toLocaleDateString('en-US', options)}`;
+
+            const dayEvents = allMasterData.filter(item => item.date === selectedDateStr);
+            dayEvents.sort((a, b) => compareTimeStrings(a.start, b.start));
+            renderScheduleList(dayEvents, 'cal-day-schedule-list');
+        }
+
+        function changeMonth(direction) {
+            calDate.setMonth(calDate.getMonth() + direction);
+            buildCalendarStructure();
+        }
+
+        function jumpToToday() {
+            calDate = new Date();
+            selectedDateStr = formatDateString(calDate);
+            buildCalendarStructure();
+            showClassesForSelectedDay();
+        }
+
+        document.getElementById('search-input').addEventListener('input', function(e) {
+            if(currentTab !== 'upcoming') return; 
+            const keyword = e.target.value.toLowerCase();
+            const searched = filteredUpcomingData.filter(item => 
+                item.topic.toLowerCase().includes(keyword) || 
+                item.code.toLowerCase().includes(keyword) ||
+                item.lecturer.toLowerCase().includes(keyword)
+            );
+            renderScheduleList(searched, 'schedule-container');
+        });
+
+        function switchTab(tab) {
+            currentTab = tab;
+            const items = document.querySelectorAll('.nav-item');
+            items[0].classList.toggle('active', tab === 'upcoming');
+            items[1].classList.toggle('active', tab === 'calendar');
+            const pageTitle = document.getElementById('page-title');
+            const searchBox = document.getElementById('search-box-area');
+
+            if (tab === 'upcoming') {
+                pageTitle.innerText = 'Upcoming Schedule';
+                searchBox.style.display = 'block';
+                filterUpcoming();
+            } else {
+                pageTitle.innerText = 'Calendar';
+                searchBox.style.display = 'none';
+                renderCalendarView();
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
